@@ -34,13 +34,13 @@ symbol_prices = {}  # Current prices of symbols
 active_subscriptions = set()  # Currently subscribed symbols
 
 async def connect_deriv():
-    print("Connecting to Deriv API...")
+    print("Connexion à l'API Deriv...")
     """Establish connection to Deriv API and maintain it."""
     while True:
         try:
             async with websockets.connect(DERIV_API_URL+'?app_id='+APP_ID) as websocket:
                 logger.info("Connected to Deriv API")
-                print("Connected to Deriv API")
+                print("Connecté à l'API Deriv")
                 
                 # Get active symbols first
                 await get_active_symbols(websocket)
@@ -50,7 +50,7 @@ async def connect_deriv():
                 
         except Exception as e:
             logger.error(f"Connection error: {e}")
-            print(f"Connection error: {e}")
+            print(f"Erreur de connexion : {e}")
             await asyncio.sleep(5)  # Wait before reconnecting
 
 async def get_active_symbols(websocket):
@@ -132,7 +132,7 @@ async def check_price_alerts(symbol, old_price, new_price):
 async def send_alert(user_id, symbol, alert_price, current_price, direction_text):
     """Send alert notification to user."""
     display_name = active_symbols.get(symbol, symbol)
-    message = f"🚨 PRICE ALERT 🚨\n\n{display_name} has {direction_text} {alert_price}\nCurrent price: {current_price}"
+    message = f"🚨 ALERTE DE PRIX 🚨\n\n{display_name} a {direction_text} {alert_price}\nPrix actuel : {current_price}"
     
     bot = Bot(token=TELEGRAM_TOKEN)
     await bot.send_message(chat_id=user_id, text=message)
@@ -143,18 +143,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Send welcome message when /start command is issued."""
     user_id = update.effective_user.id
     
-    welcome_text = (
-        "Welcome to Deriv Synthetic Indices Alert Bot!\n\n"
-        "I can notify you when synthetic indices reach specific prices.\n\n"
-        "Available commands:\n"
-        "/setalert - Set a new price alert\n"
-        "/myalerts - View your current alerts\n"
-        "/deletealert - Delete a specific alert\n"
-        "/deleteall - Delete all your alerts\n"
-        "/help - Show this help message"
+    welcome_text_fr = (
+        "Bienvenue sur le Bot d'Alerte Deriv Indices Synthétiques !\n\n"
+        "Je peux vous notifier lorsque les indices synthétiques atteignent des prix spécifiques.\n\n"
+        "Commandes disponibles :\n"
+        "/setalert - Définir une nouvelle alerte de prix\n"
+        "/myalerts - Voir vos alertes actuelles\n"
+        "/deletealert - Supprimer une alerte spécifique\n"
+        "/deleteall - Supprimer toutes vos alertes\n"
+        "/help - Afficher ce message d'aide"
     )
     
-    await update.message.reply_text(welcome_text)
+    await update.message.reply_text(welcome_text_fr)
     return ConversationHandler.END
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -168,7 +168,7 @@ async def set_alert_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     symbol_list = "\n".join([f"{display} ({symbol})" for symbol, display in active_symbols.items()])
     
     await update.message.reply_text(
-        "Please choose a synthetic index by typing its code (like 'R_10' or 'BOOM500'):\n\n"
+        "Veuillez choisir un indice synthétique en tapant son code (par exemple 'R_10' ou 'BOOM500') :\n\n"
         f"{symbol_list}"
     )
     
@@ -180,19 +180,19 @@ async def symbol_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if symbol not in active_symbols:
         await update.message.reply_text(
-            "Invalid symbol. Please choose from the list or use /cancel to abort."
+            "Symbole invalide. Veuillez choisir dans la liste ou utilisez /cancel pour annuler."
         )
         return SELECTING_SYMBOL
     
     context.user_data['selected_symbol'] = symbol
     
     await update.message.reply_text(
-        f"You selected {active_symbols[symbol]} ({symbol}).\n\n"
-        "Now, enter the price and direction in this format:\n"
-        "PRICE DIRECTION\n\n"
-        "For example:\n"
-        "1234.5 above (to be notified when price rises above 1234.5)\n"
-        "1234.5 below (to be notified when price falls below 1234.5)"
+        f"Vous avez sélectionné {active_symbols[symbol]} ({symbol}).\n\n"
+        "Maintenant, entrez le prix et la direction dans ce format :\n"
+        "PRIX DIRECTION\n\n"
+        "Par exemple :\n"
+        "1234.5 above (pour être notifié lorsque le prix dépasse 1234.5)\n"
+        "1234.5 below (pour être notifié lorsque le prix descend sous 1234.5)"
     )
     
     return SETTING_PRICE
@@ -203,7 +203,7 @@ async def price_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     symbol = context.user_data.get('selected_symbol')
     
     if not symbol:
-        await update.message.reply_text("Something went wrong. Please try again with /setalert.")
+        await update.message.reply_text("Une erreur s'est produite. Veuillez réessayer avec /setalert.")
         return ConversationHandler.END
     
     try:
@@ -212,7 +212,7 @@ async def price_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
         direction = parts[1]
         
         if direction not in ["above", "below"]:
-            raise ValueError("Direction must be 'above' or 'below'")
+            raise ValueError("Direction doit être 'above' ou 'below'")
         
         # Initialize user alerts if needed
         if user_id not in user_alerts:
@@ -227,14 +227,14 @@ async def price_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
         active_subscriptions.add(symbol)
         
         await update.message.reply_text(
-            f"Alert set for {active_symbols[symbol]} ({symbol}).\n"
-            f"You will be notified when the price goes {direction} {price}."
+            f"Alerte définie pour {active_symbols[symbol]} ({symbol}).\n"
+            f"Vous serez notifié lorsque le prix sera {direction} {price}."
         )
         
     except (ValueError, IndexError) as e:
         await update.message.reply_text(
-            f"Invalid format: {e}\n"
-            "Please use format: PRICE DIRECTION (e.g., '1234.5 above')"
+            f"Format invalide : {e}\n"
+            "Veuillez utiliser le format : PRIX DIRECTION (ex : '1234.5 above')"
         )
         return SETTING_PRICE
     
@@ -242,7 +242,7 @@ async def price_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Cancel the current operation."""
-    await update.message.reply_text("Operation cancelled.")
+    await update.message.reply_text("Opération annulée.")
     return ConversationHandler.END
 
 async def my_alerts(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -250,17 +250,17 @@ async def my_alerts(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     
     if user_id not in user_alerts or not user_alerts[user_id]:
-        await update.message.reply_text("You don't have any active alerts.")
+        await update.message.reply_text("Vous n'avez aucune alerte active.")
         return
     
-    message = "Your active alerts:\n\n"
+    message = "Vos alertes actives :\n\n"
     
     for symbol, alerts in user_alerts[user_id].items():
         display_name = active_symbols.get(symbol, symbol)
         message += f"📊 {display_name} ({symbol}):\n"
         
         for price, direction in alerts.items():
-            message += f"  • {direction.capitalize()} {price}\n"
+            message += f"  • {direction.capitalize()} {price}\n"  # Direction words will be handled in the alert setup
         
         message += "\n"
     
@@ -271,11 +271,11 @@ async def delete_alert(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     
     if user_id not in user_alerts or not user_alerts[user_id]:
-        await update.message.reply_text("You don't have any active alerts to delete.")
+        await update.message.reply_text("Vous n'avez aucune alerte active à supprimer.")
         return
     
     # Show current alerts with numbers
-    message = "Reply with the number of the alert you want to delete:\n\n"
+    message = "Répondez avec le numéro de l'alerte que vous souhaitez supprimer :\n\n"
     alert_list = []
     
     for symbol, alerts in user_alerts[user_id].items():
@@ -305,12 +305,12 @@ async def process_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if not user_alerts[user_id][symbol]:
                 del user_alerts[user_id][symbol]
             
-            await update.message.reply_text(f"Alert deleted successfully.")
+            await update.message.reply_text(f"Alerte supprimée avec succès.")
         else:
-            await update.message.reply_text("Invalid number. Please try again.")
+            await update.message.reply_text("Numéro invalide. Veuillez réessayer.")
     
     except ValueError:
-        await update.message.reply_text("Please enter a valid number.")
+        await update.message.reply_text("Veuillez entrer un numéro valide.")
 
 async def delete_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Delete all alerts for a user."""
@@ -318,12 +318,12 @@ async def delete_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if user_id in user_alerts:
         del user_alerts[user_id]
-        await update.message.reply_text("All your alerts have been deleted.")
+        await update.message.reply_text("Toutes vos alertes ont été supprimées.")
     else:
-        await update.message.reply_text("You don't have any alerts to delete.")
+        await update.message.reply_text("Vous n'avez aucune alerte à supprimer.")
 
 def main():
-    print("Starting the bot...")
+    print("Démarrage du bot...")
     """Start the bot and setup handlers."""
     # Create application
     application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
@@ -337,28 +337,28 @@ def main():
         },
         fallbacks=[CommandHandler('cancel', cancel)]
     )
-    print("Conversation handler added.")
+    print("Gestionnaire de conversation ajouté.")
     
     # Add handlers
-    print("Adding command handlers...")
+    print("Ajout des gestionnaires de commandes...")
     application.add_handler(CommandHandler("start", start))
-    print("Start command handler added.")
+    print("Gestionnaire de commande /start ajouté.")
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(set_alert_conv)
     application.add_handler(CommandHandler("myalerts", my_alerts))
     application.add_handler(CommandHandler("deletealert", delete_alert))
     application.add_handler(CommandHandler("deleteall", delete_all))
-    print("Command handlers added.")
+    print("Gestionnaires de commandes ajoutés.")
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, process_delete))
-    print("Handlers added.")
+    print("Gestionnaires ajoutés.")
         # Start the Deriv API connection in a separate thread
     loop = asyncio.get_event_loop()
     loop.create_task(connect_deriv())
 
     # Start the bot
     application.run_polling()
-    print("Bot started.")
-    print("Bot is running...")
+    print("Bot démarré.")
+    print("Le bot est en cours d'exécution...")
 
 if __name__ == '__main__':
     main()
