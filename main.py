@@ -16,7 +16,14 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
-logger = logging.getLogger(__name__)
+
+
+# Réduire le bruit des logs des bibliothèques
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("telegram").setLevel(logging.WARNING)
+
+# Logger personnalisé
+logger = logging.getLogger("monbot")
 
 # Load environment variables
 load_dotenv()
@@ -34,13 +41,11 @@ symbol_prices = {}  # Current prices of symbols
 active_subscriptions = set()  # Currently subscribed symbols
 
 async def connect_deriv():
-    print("Connexion à l'API Deriv...")
     """Establish connection to Deriv API and maintain it."""
     while True:
         try:
             async with websockets.connect(DERIV_API_URL+'?app_id='+APP_ID) as websocket:
                 logger.info("Connected to Deriv API")
-                print("Connecté à l'API Deriv")
                 
                 # Get active symbols first
                 await get_active_symbols(websocket)
@@ -50,7 +55,6 @@ async def connect_deriv():
                 
         except Exception as e:
             logger.error(f"Connection error: {e}")
-            print(f"Erreur de connexion : {e}")
             await asyncio.sleep(5)  # Wait before reconnecting
 
 async def get_active_symbols(websocket):
@@ -69,7 +73,7 @@ async def get_active_symbols(websocket):
                 symbol_id = symbol['symbol']
                 display_name = symbol['display_name']
                 active_symbols[symbol_id] = display_name
-                logger.info(f"Added symbol: {display_name} ({symbol_id})")
+                # logger.info(f"Added symbol: {display_name} ({symbol_id})")
 
 async def handle_price_updates(websocket):
     """Subscribe to price updates for symbols and process them."""
@@ -337,20 +341,15 @@ def main():
         },
         fallbacks=[CommandHandler('cancel', cancel)]
     )
-    print("Gestionnaire de conversation ajouté.")
     
     # Add handlers
-    print("Ajout des gestionnaires de commandes...")
     application.add_handler(CommandHandler("start", start))
-    print("Gestionnaire de commande /start ajouté.")
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(set_alert_conv)
     application.add_handler(CommandHandler("myalerts", my_alerts))
     application.add_handler(CommandHandler("deletealert", delete_alert))
     application.add_handler(CommandHandler("deleteall", delete_all))
-    print("Gestionnaires de commandes ajoutés.")
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, process_delete))
-    print("Gestionnaires ajoutés.")
         # Start the Deriv API connection in a separate thread
     loop = asyncio.get_event_loop()
     loop.create_task(connect_deriv())
@@ -358,7 +357,6 @@ def main():
     # Start the bot
     application.run_polling()
     print("Bot démarré.")
-    print("Le bot est en cours d'exécution...")
 
 if __name__ == '__main__':
     main()
